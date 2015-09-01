@@ -1,0 +1,227 @@
+// PEG.js grammar for layer properties
+
+{
+  function map(list, index) {
+    var out = [];
+    for (var i = 0; i < list.length; i++)
+      out.push(list[i][index]);
+    return out;
+  }
+
+  function Point(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+  Point.prototype.type = 'point';
+
+  function Rect(x, y, w, h) {
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
+  }
+
+  Rect.prototype.type = 'rect';
+
+  function Color(r, g, b, a) {
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+  }
+  Color.prototype.type = 'color';
+
+  function Region(rects) {
+    this.rects = rects;
+  }
+  Region.prototype.type = 'region';
+
+  function Metrics(props) {
+    this.props = props;
+  }
+  Metrics.prototype.type = 'metrics';
+
+  function Matrix2D(rows) {
+    this.rows = rows;
+  }
+  Matrix2D.prototype.type = 'matrix2d';
+
+  function Matrix3D(rows) {
+    this.rows = rows;
+  }
+  Matrix3D.prototype.type = 'matrix3d';
+
+  function Pointer(x) {
+    this.value = x;
+  }
+  Pointer.prototype.type = 'pointer';
+
+  function FixedPosition(props) {
+    this.props = props;
+  }
+  FixedPosition.prototype.type = 'fixedpos';
+
+  function Scale(x, y) {
+    this.xScale = x;
+    this.yScale = y;
+  }
+  Scale.prototype.type = 'scale';
+
+  function Properties(list) {
+    var obj = {};
+    for (var i = 0; i < list.length; i++)
+      obj[list[i].key] = list[i].value || true;
+    return obj;
+  }
+}
+
+Root
+ = _ addr:("(0x" Pointer ")")? _ props:PropertyList {
+   if (addr)
+     props['address'] = addr[1]
+   return props
+ }
+
+PropertyList
+  = items:(TopLevelItem _)* {
+    return Properties(map(items, 0));
+  }
+
+TopLevelItem
+  = FixedPosition
+  / Property
+  / EventRegions
+
+Property
+  = "[" _ key:PropertyKey _ value:PropertyTail? "]" {
+    return { key: key, value: value };
+  }
+
+PropertyKey
+  = [ A-Za-z0-9_-]+ {
+    return text().replace(/[- ]/, '_');
+  }
+
+PropertyTail
+  = "=" _ v:PropertyValue {
+    return v;
+  }
+
+EventRegions
+  = "{" _ r:(EventRegion _)* _ "}" {
+    return map(r, 0);
+  }
+
+EventRegion
+  = key:PropertyKey _ "=" _ region:Region {
+    return { key: key, value: region };
+  }
+
+FixedPosition
+  = "[" _ "isFixedPosition" _ props:InlineProperties _ "]" {
+    return { key: "isFixedPosition", value: new FixedPosition(props) };
+  }
+
+InlineProperties
+  = pairs:(PropertyKey _ PropertyTail? _)* {
+    var items = {}
+    for (var i = 0; i < pairs.length; i++)
+      items[pairs[i][0]] = pairs[i][2] || true;
+    return items;
+  }
+
+PropertyValue
+  = Rectangle
+  / Matrix2D
+  / Matrix3D
+  / Point
+  / Color
+  / Metrics
+  / Region
+  / Scale
+  / NumericValue
+
+Region "region"
+  = "<" _ r:(Rectangle _ ";" _)* ">" {
+    return new Region(map(r, 0));
+  }
+
+Rectangle "rect"
+  = "(" _ p:NamedPointCoords _ "," _ s:NamedSizeCoords _ ")" {
+    return new Rect(p.x, p.y, s.w, s.h);
+  }
+
+NamedPointCoords
+  = "x" _ "=" _ x:Number _ "," _ "y" _ "=" _ y:Number {
+    return { x: x, y: y };
+  }
+
+NamedSizeCoords
+  = "w" _ "=" _ w:Number _ "," _ "h" _ "=" _ h:Number {
+    return { w: w, h: h };
+  }
+
+Matrix3D "matrix3d"
+  = "[" _ r1:Matrix3DRow _ r2:Matrix3DRow _ r3:Matrix3DRow _ r4:Matrix3DRow _ "]" {
+    return new Matrix3D([r1, r2, r3, r4]);
+  }
+
+Matrix2D "matrix2d"
+  = "[" _ r1:Matrix2DRow _ r2:Matrix2DRow _ r3:Matrix2DRow _ "]" {
+    return new Matrix2D([r1, r2, r3]);
+  }
+
+Matrix2DRow
+  = a1:Number __ a2:Number _ ";" {
+    return [a1, a2];
+  }
+
+Matrix3DRow
+  = a1:Number __ a2:Number __ a3:Number __ a4:Number _ ";" {
+    return [a1, a2, a3, a4];
+  }
+
+Metrics "metrics"
+  = "{" _ p:PropertyList _ "}" {
+    return new Metrics(p);
+  }
+
+Point "point"
+  = "(" _ x:Number _ "," _ y:Number _ ")" {
+    return new Point(x, y);
+  }
+
+Color "color"
+  = "rgba" "(" _ r:Number _ "," _ g:Number _ "," _ b:Number _ "," _ a:Number _ ")" {
+    return new Color(r, g, b, a);
+  }
+
+Scale "scale"
+  = x:Number _ "," _ y:Number {
+    return new Scale(x, y);
+  }
+
+NumericValue
+  = Float
+  / Pointer
+  / Integer
+
+Number
+  = Float
+  / Integer
+
+Float "float"
+  = [-+]?[0-9]+[.][0-9]+("e"[-]?[0-9]+)? { return parseFloat(text()); }
+
+Integer "integer"
+  = [-+]?[0-9]+ { return parseInt(text(), 10); }
+
+Pointer "pointer"
+  = [A-Fa-f0-9]+ { return new Pointer("0x" + text().toLowerCase()); }
+  / "(null)" { return new Pointer("null"); }
+
+_ "whitespace"
+  = [ \t\n\r]*
+
+__ "required space"
+  = [ \t]

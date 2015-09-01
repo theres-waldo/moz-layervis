@@ -3,20 +3,62 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta http-equiv="content-language" content="en">
-    <script src="jquery-1.8.3.min.js"></script>
-    <script src="ryb.js"></script> 
-    <script src="sylvester.src.js"></script> 
-    <script src="view.js"></script>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script src="js/jquery-1.8.3.min.js"></script>
+    <script src="js/ryb.js"></script> 
+    <script src="js/sylvester.src.js"></script> 
+    <script src="js/property-parser.js"></script> 
+    <script src="js/log-parser.js"></script> 
+    <script src="js/layer-tree.js"></script> 
+    <script src="js/controller.js"></script>
+    <script src="js/compositor.js"></script>
     <title>Layers Visualizer</title>
   </head>
   <body onload="Startup()">
+    <div id="enter-log-details">Log text: <span id='log-icon'></span></div>
     <div id="log-container">
-      <div id="enter-log-details">Log text: <span id='log-icon'></span></div>
-      <textarea id="log-text" cols="140" rows="12"></textarea>
+      <textarea id="log-text" cols="140" rows="12">Painting --- compositing layer tree:
+LayerManager (0x153d9a80)
+  ContainerLayerComposite (0x15dab000) [shadow-visible=< (x=0, y=0, w=1749, h=900); >] [visible=< (x=0, y=0, w=1749, h=900); >] [metrics0={ [cb=(x=0.000000, y=0.000000, w=1749.000000, h=900.000000)] [sr=(x=0.000000, y=0.000000, w=1399.199951, h=720.000000)] [s=(0,0)] [dp=(x=0.000000, y=0.000000, w=0.000000, h=0.000000)] [cdp=(x=0.000000, y=0.000000, w=0.000000, h=0.000000)] [color=rgba(0, 0, 0, 0)] [scrollId=2] [z=1.25] }]
+    PaintedLayerComposite (0x15dac400) [shadow-visible=< (x=0, y=0, w=1749, h=900); >] [bounds=(x=-4, y=0, w=1753, h=900)] [visible=< (x=0, y=0, w=1749, h=900); >] { hitregion=< (x=0, y=0, w=1749, h=63); (x=-4, y=63, w=1753, h=36); (x=0, y=99, w=1749, h=801); > dispatchtocontentregion=< (x=1, y=20, w=1550, h=39); (x=1099, y=63, w=332, h=36); >} [valid=< (x=0, y=0, w=1749, h=900); >]
+      ContentHost (0x15aa61f0) [buffer-rect=(x=0, y=0, w=1749, h=900)] [buffer-rotation=(0,0)]
+        TextureHost (0x129fc060) [size=(w=1749, h=900)] [format=SurfaceFormat::B8G8R8A8] [flags=NoFlags]
+    ContainerLayerComposite (0x15dab400) [shadow-clip=(x=0, y=106, w=1749, h=794)] [shadow-visible=< (x=0, y=106, w=1749, h=794); >] [clip=(x=0, y=106, w=1749, h=794)] [visible=< (x=0, y=106, w=1749, h=794); >]
+      PaintedLayerComposite (0x15dac000) [not visible] { hitregion=< (x=0, y=106, w=1749, h=795); >} [opaqueContent]
+      PaintedLayerComposite (0x15dab800) [shadow-clip=(x=0, y=0, w=0, h=0)] [shadow-transform=[ 1 0; 0 1; 0 106; ]] [clip=(x=0, y=0, w=0, h=0)] [transform=[ 1 0; 0 1; 0 106; ]] [not visible]
+      ColorLayerComposite (0x15dabc00) [shadow-transform=[ 1 0; 0 1; 0 106; ]] [shadow-visible=< (x=0, y=0, w=1749, h=794); >] [transform=[ 1 0; 0 1; 0 106; ]] [bounds=(x=0, y=0, w=1749, h=794)] [visible=< (x=0, y=0, w=1749, h=794); >] { hitregion=< (x=0, y=0, w=1749, h=795); >} [opaqueContent] [color=rgba(255, 255, 255, 1)] [bounds=(x=0, y=0, w=1749, h=794)]
+      egg
+      egg
+      egg
+LayerManager (0x153d9a80)
+  ContainerLayerComposite (0x15dab000) [shadow-visible=< (x=0, y=0, w=1749, h=900); >] [visible=< (x=0, y=0, w=1749, h=900); >] [metrics0={ [cb=(x=0.000000, y=0.000000, w=1749.000000, h=900.000000)] [sr=(x=0.000000, y=0.000000, w=1399.199951, h=720.000000)] [s=(0,0)] [dp=(x=0.000000, y=0.000000, w=0.000000, h=0.000000)] [cdp=(x=0.000000, y=0.000000, w=0.000000, h=0.000000)] [color=rgba(0, 0, 0, 0)] [scrollId=2] [z=1.25] }]
+    PaintedLayerComposite (0x15dac400) [shadow-visible=< (x=0, y=0, w=1749, h=900); >] [bounds=(x=-4, y=0, w=1753, h=900)] [visible=< (x=0, y=0, w=1749, h=900); >] { hitregion=< (x=0, y=0, w=1749, h=63); (x=-4, y=63, w=1753, h=36); (x=0, y=99, w=1749, h=801); > dispatchtocontentregion=< (x=1, y=20, w=1550, h=39); (x=1099, y=63, w=332, h=36); >} [valid=< (x=0, y=0, w=1749, h=900); >]
+      ContentHost (0x15aa61f0) [buffer-rect=(x=0, y=0, w=1749, h=900)] [buffer-rotation=(0,0)]
+        TextureHost (0x129fc060) [size=(w=1749, h=900)] [format=SurfaceFormat::B8G8R8A8] [flags=NoFlags]
+    ContainerLayerComposite (0x15dab400) [shadow-clip=(x=0, y=106, w=1749, h=794)] [shadow-visible=< (x=0, y=106, w=1749, h=794); >] [clip=(x=0, y=106, w=1749, h=794)] [visible=< (x=0, y=106, w=1749, h=794); >]
+      PaintedLayerComposite (0x15dac000) [not visible] { hitregion=< (x=0, y=106, w=1749, h=795); >} [opaqueContent]
+      PaintedLayerComposite (0x15dab800) [shadow-clip=(x=0, y=0, w=0, h=0)] [shadow-transform=[ 1 0; 0 1; 0 106; ]] [clip=(x=0, y=0, w=0, h=0)] [transform=[ 1 0; 0 1; 0 106; ]] [not visible]
+      ColorLayerComposite (0x15dabc00) [shadow-transform=[ 1 0; 0 1; 0 106; ]] [shadow-visible=< (x=0, y=0, w=1749, h=794); >] [transform=[ 1 0; 0 1; 0 106; ]] [bounds=(x=0, y=0, w=1749, h=794)] [visible=< (x=0, y=0, w=1749, h=794); >] { hitregion=< (x=0, y=0, w=1749, h=795); >} [opaqueContent] [color=rgba(255, 255, 255, 1)] [bounds=(x=0, y=0, w=1749, h=794)]</textarea>
       <br/>
-      <button type="click" onclick="Render()">Render</button>
+      <button type="click" onclick="Display.Render()">Render</button> .. or ..
+      <input type="file" id="filechooser" onchange="Display.RenderFile()"/>
+    </div>
+    <div id="controlbox" style="display: none">
       <input type="text" id="titlebox" size="60" onkeyup="UpdateTitle()"
              placeholder="Enter a page title here"/>
+      <br/>
+      Frame: 
+      <button type="click" id="first-frame" onclick="Display.GoFirstFrame()">&lt;&lt;</button>
+      <button type="click" id="prev-frame" onclick="Display.GoPrevFrame()">&lt;</button>
+      <input type="number" id="current-frame" min="0" step="1" value="0"
+             onkeyup="Display.GoToFrame()" oninput="Display.GoToFrame()"/>
+      <button type="click" id="next-frame" onclick="Display.GoNextFrame()">&gt;</button>
+      <button type="click" id="last-frame" onclick="Display.GoLastFrame()">&gt;&gt;</button>
+    </div>
+    <div id="viewbox" style="display: none">
+      <div id="errorbox" style="display: none">Errors:</div>
+      <canvas id="composite" width="1" height="1">
+      </canvas>
     </div>
   </body>
 </html>
