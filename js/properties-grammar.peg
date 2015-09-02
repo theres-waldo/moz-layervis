@@ -40,6 +40,7 @@
     this.props = props;
   }
   Metrics.prototype.type = 'metrics';
+  Metrics.prototype.complex = true;
 
   function Matrix2D(rows) {
     this.rows = rows;
@@ -60,6 +61,13 @@
     this.props = props;
   }
   FixedPosition.prototype.type = 'fixedpos';
+  FixedPosition.prototype.complex = true;
+
+  function EventRegions(props) {
+    this.props = Properties(props);
+  }
+  EventRegions.prototype.type = 'eventregions';
+  EventRegions.prototype.complex = true;
 
   function Scale(x, y) {
     this.xScale = x;
@@ -109,7 +117,7 @@ PropertyTail
 
 EventRegions
   = "{" _ r:(EventRegion _)* _ "}" {
-    return map(r, 0);
+    return { key: "eventRegions", value: new EventRegions(map(r, 0)) };
   }
 
 EventRegion
@@ -217,7 +225,7 @@ Integer "integer"
   = [-+]?[0-9]+ { return parseInt(text(), 10); }
 
 Pointer "pointer"
-  = [A-Fa-f0-9]+ { return new Pointer("0x" + text().toLowerCase()); }
+  = [A-Fa-f0-9]+ { return new Pointer(text().toLowerCase()); }
   / "(null)" { return new Pointer("null"); }
 
 _ "whitespace"

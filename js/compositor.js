@@ -158,9 +158,14 @@ Compositor.prototype.render = function ()
 {
   this.preprocess();
 
+  var scale = this.scale;
+  var metrics0 = this.tree.root.props.metrics0;
+  if (metrics0 && metrics0.props.z)
+    scale *= (1.0 / metrics0.props.z);
+
   var root = this.tree.root;
-  this.ctx.canvas.width = root.visibleBounds.w * this.scale;
-  this.ctx.canvas.height = root.visibleBounds.h * this.scale;
+  this.ctx.canvas.width = root.visibleBounds.w * scale;
+  this.ctx.canvas.height = root.visibleBounds.h * scale;
   this.composite();
 }
 
@@ -168,13 +173,13 @@ Compositor.prototype.preprocess = function ()
 {
   var visible = 0;
   this.tree.root.apply(function (layer) {
-    if (layer.shouldRender())
+    if (layer.visible())
       visible++;
   });
 
   var colors = new ColorGenerator(visible);
   this.tree.root.apply(function (layer) {
-    if (!layer.shouldRender())
+    if (!layer.visible())
       return;
 
     var color = colors.next();

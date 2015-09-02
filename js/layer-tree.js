@@ -1,6 +1,13 @@
 // vim: set ts=2 sw=2 tw=99 et:
 "use strict";
 
+function Luminosity(color)
+{
+  return 0.2126 * color[0] +
+         0.7152 * color[1] +
+         0.0722 * color[2];
+}
+
 function BoundsOfRegion(rgn)
 {
   if (!rgn.rects.length)
@@ -104,13 +111,241 @@ Layer.prototype.parse = function (tree)
     this.visibleBounds = null;
   else
     this.visibleBounds = BoundsOfRegion(this.props.shadow_visible);
+  if ('address' in r) {
+    this.address = r['address'].value;
+    delete r['address'];
+  }
 }
 
 Layer.prototype.shouldRender = function ()
 {
   if (this.disabled)
     return false;
+  return this.visible();
+}
+
+Layer.prototype.visible = function ()
+{
   if (this.type === 'ContainerLayerComposite')
     return true;
-  return this.visibleBound !== null;
+  return this.visibleBounds !== null;
+}
+
+Layer.prototype.drawInfo = function (list)
+{
+  var item = $('<li></li>');
+
+  var span = $('<span></span>');
+  item.append(span);
+
+  span.text(this.type + ' (' + this.address + ')');
+  span.click((function () {
+    this.disabled = !this.disabled;
+    Display.Update();
+  }).bind(this));
+  span.css('cursor', 'pointer');
+
+  // Render header.
+  if (this.visible()) {
+    // Is this color too light? ITU Rec 709
+    if (Luminosity(this.color_rgb) >= 200)
+      span.css('backgroundColor', 'black');
+    span.css({
+      color: this.color,
+      fontWeight: 'bold',
+      fontSize: '12pt',
+    });
+  } else {
+    item.css({
+      color: '#ccc',
+      fontStyle: 'italic',
+    });
+  }
+  if (!this.shouldRender())
+    item.css('textDecoration', 'line-through');
+
+  // Render property info.
+  var propList = $('<ul></ul>');
+  var pr = new PropRenderer(this, propList, this.props);
+  pr.render();
+  item.append(propList);
+
+  // Render children.
+  if (this.children.length > 0) {
+    var sublist = $('<ul></ul>');
+    for (var i = 0; i < this.children.length; i++)
+      this.children[i].drawInfo(sublist);
+    item.append(sublist);
+  }
+
+  list.append(item);
+}
+
+function PropRenderer(layer, list, props)
+{
+  this.layer = layer;
+  this.list = list;
+  this.props = {};
+  for (var key in props)
+    this.props[key] = props[key];
+}
+PropRenderer.ShadowProps = ['visible', 'clip', 'transform'];
+
+function PropToString(prop)
+{
+  if (typeof(prop) != 'object')
+    return prop.toString();
+
+  switch (prop.type) {
+  case 'region':
+    var list = [];
+    for (var i = 0; i < prop.rects.length; i++) {
+      var r = prop.rects[i];
+      list.push('(' + r.x + ', ' + r.y + ', ' + r.w + ', ' + r.h + ')');
+    }
+    return '<' + list.join('; ') + '>';
+  case 'matrix2d':
+    return '[ ' + prop.rows[0][0] + ' ' + prop.rows[0][1] + '; ' +
+                  prop.rows[1][0] + ' ' + prop.rows[1][1] + '; ' +
+                  prop.rows[2][0] + ' ' + prop.rows[2][1] + ' ]';
+  case 'rect':
+    return '(x=' + prop.x + ', y=' + prop.y + ', w=' + prop.w + ', h=' + prop.h + ')';
+  case 'color':
+    return 'rgba(' + prop.r + ', ' + prop.g + ', ' + prop.b + ', ' + prop.a + ')';
+  case 'pointer':
+    return prop.value.toString();
+  case 'point':
+    return '(x=' + prop.x + ', y=' + prop.y + ')';
+  case 'scale':
+    return '(' + prop.xScale + ', ' + prop.yScale + ')';
+  default:
+    return prop.type + ', ' + prop.toString();
+  }
+}
+
+PropRenderer.prototype.render = function ()
+{
+  this.renderFlags();
+  if (this.layer) {
+    this.renderShadowProps();
+    this.renderEventRegions();
+    this.renderFixedPos();
+  }
+  this.renderNormal();
+  if (this.layer)
+    this.renderMetrics();
+}
+
+PropRenderer.prototype.append = function (text)
+{
+  this.list.append($('<span></span>').text(text));
+  this.list.append($('<br/>'));
+}
+
+PropRenderer.prototype.renderNormal = function ()
+{
+  for (var key in this.props) {
+    var value = this.props[key];
+    if (typeof(value) == 'object' && value.complex)
+      continue;
+
+    this.append(key + ': ' + PropToString(value));
+  }
+}
+
+PropRenderer.prototype.renderShadowProps = function ()
+{
+  for (var i = 0; i < PropRenderer.ShadowProps.length; i++) {
+    var key = PropRenderer.ShadowProps[i];
+    var shadow_key = 'shadow_' + key;
+    var value = this.popProp(key);
+    var shadow_value = this.popProp(shadow_key);
+
+    var text = '';
+    if (shadow_value)
+      text += 'shadow = '  + PropToString(shadow_value);
+    if (value) {
+      if (shadow_value)
+        text += ', ';
+      text += 'client = ' + PropToString(value);
+    }
+    if (!text.length)
+      continue;
+
+    this.append(key + ': ' + text);
+  }
+}
+
+PropRenderer.prototype.renderFixedPos = function ()
+{
+  var value = this.popProp('isFixedPosition');
+  if (!value)
+    return;
+
+  var ul = $('<ul></ul>');
+  var pr = new PropRenderer(null, ul, value.props);
+  pr.render();
+
+  this.append('fixed position: ');
+  this.list.append(ul);
+}
+
+PropRenderer.prototype.renderMetrics = function ()
+{
+  var i = 0;
+  while (true) {
+    var key = 'metrics' + i;
+    var value = this.popProp(key);
+    if (!value)
+      break;
+
+    var ul = $('<ul></ul>');
+    var pr = new PropRenderer(null, ul, value.props);
+    pr.render();
+
+    this.append(key + ': ' );
+    this.list.append(ul);
+  }
+}
+
+PropRenderer.prototype.renderFlags = function ()
+{
+  // Pick out boolean properties.
+  var flags = [];
+  for (var key in this.props) {
+    if (typeof(this.props[key]) != 'boolean')
+      continue;
+
+    flags.push(key);
+    delete this.props[key];
+  }
+
+  if (!flags.length)
+    return;
+
+  this.append('flags: ' + flags.join(', '));
+}
+
+PropRenderer.prototype.renderEventRegions = function ()
+{
+  var value = this.popProp('eventRegions');
+  if (!value)
+    return;
+
+  this.append('event regions: ');
+  var ul = $('<ul></ul>');
+
+  for (var key in value.props) {
+    var li = $('<li></li>').text(key + ': ' + PropToString(value.props[key]));
+    ul.append(li);
+  }
+
+  this.list.append(ul);
+}
+
+PropRenderer.prototype.popProp = function (propName)
+{
+  var value = this.props[propName];
+  delete this.props[propName];
+  return value;
 }

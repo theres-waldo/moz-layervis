@@ -70,7 +70,7 @@ LayerPropertyParser = (function() {
         peg$c19 = "}",
         peg$c20 = { type: "literal", value: "}", description: "\"}\"" },
         peg$c21 = function(r) {
-            return map(r, 0);
+            return { key: "eventRegions", value: new EventRegions(map(r, 0)) };
           },
         peg$c22 = function(key, region) {
             return { key: key, value: region };
@@ -167,7 +167,7 @@ LayerPropertyParser = (function() {
         peg$c81 = { type: "other", description: "pointer" },
         peg$c82 = /^[A-Fa-f0-9]/,
         peg$c83 = { type: "class", value: "[A-Fa-f0-9]", description: "[A-Fa-f0-9]" },
-        peg$c84 = function() { return new Pointer("0x" + text().toLowerCase()); },
+        peg$c84 = function() { return new Pointer(text().toLowerCase()); },
         peg$c85 = "(null)",
         peg$c86 = { type: "literal", value: "(null)", description: "\"(null)\"" },
         peg$c87 = function() { return new Pointer("null"); },
@@ -2440,6 +2440,7 @@ LayerPropertyParser = (function() {
         this.props = props;
       }
       Metrics.prototype.type = 'metrics';
+      Metrics.prototype.complex = true;
 
       function Matrix2D(rows) {
         this.rows = rows;
@@ -2460,6 +2461,13 @@ LayerPropertyParser = (function() {
         this.props = props;
       }
       FixedPosition.prototype.type = 'fixedpos';
+      FixedPosition.prototype.complex = true;
+
+      function EventRegions(props) {
+        this.props = Properties(props);
+      }
+      EventRegions.prototype.type = 'eventregions';
+      EventRegions.prototype.complex = true;
 
       function Scale(x, y) {
         this.xScale = x;
