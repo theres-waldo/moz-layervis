@@ -8,6 +8,10 @@ function Compositor(tree, ctx, scale)
   this.transform = null;
   this.colors = null;
   this.scale = scale || 1.0;
+
+  var metrics0 = this.tree.root.props.metrics0;
+  if (metrics0 && metrics0.props.z)
+    this.scale *= (1.0 / metrics0.props.z);
 }
 
 Compositor.prototype.pushTransform = function (m) {
@@ -81,21 +85,19 @@ Compositor.prototype.renderLayer = function (layer) {
     }
   }
 
-  // Flip 0 to stroke containers instead of fill.
-  if (0 && (layer.type === 'ContainerLayerComposite' || layer.type === 'RefLayerComposite')) {
-    this.ctx.stroke();
-  } else {
-    this.ctx.fillStyle = layer.color;
-    this.ctx.fill();
+  this.ctx.fillStyle = layer.color;
+  this.ctx.fill();
+
+  var dtc = layer.props.eventRegions
+            ? layer.props.eventRegions.dispatchtocontentregion
+            : null;
+  if (dtc) {
+    for (var i = 0; i < dtc.rects.length; i++)
+      this.drawDispatchToContentRegion(layer, dtc.rects[i]);
   }
 
-  // for (var i = 0; i < layer.dispatchToContent.rects.length; i++) {
-  //   this.drawDispatchToContentRegion(layer, layer.dispatchToContent.rects[i]);
-  // }
-
-  for (var i = 0; i < layer.children.length; i++) {
+  for (var i = 0; i < layer.children.length; i++)
     this.renderLayer(layer.children[i]);
-  }
 
   if (postScale)
     this.popScale();
@@ -158,14 +160,9 @@ Compositor.prototype.render = function ()
 {
   this.preprocess();
 
-  var scale = this.scale;
-  var metrics0 = this.tree.root.props.metrics0;
-  if (metrics0 && metrics0.props.z)
-    scale *= (1.0 / metrics0.props.z);
-
   var root = this.tree.root;
-  this.ctx.canvas.width = root.visibleBounds.w * scale;
-  this.ctx.canvas.height = root.visibleBounds.h * scale;
+  this.ctx.canvas.width = root.visibleBounds.w * this.scale;
+  this.ctx.canvas.height = root.visibleBounds.h * this.scale;
   this.composite();
 }
 
