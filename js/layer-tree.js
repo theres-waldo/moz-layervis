@@ -72,6 +72,7 @@ function Layer(parent, name, text, lineno)
   this.type = name;
   this.text = text;
   this.lineno = lineno;
+  this.maskLayer = null;
 
   // Display properties.
   this.disabled = false;
@@ -153,7 +154,7 @@ Layer.prototype.drawInfo = function (list)
     span.css({
       color: this.color,
       fontWeight: 'bold',
-      fontSize: '12pt',
+      fontSize: '11pt',
     });
   } else {
     item.css({
@@ -165,7 +166,7 @@ Layer.prototype.drawInfo = function (list)
     item.css('textDecoration', 'line-through');
 
   // Render property info.
-  var propList = $('<ul></ul>');
+  var propList = $('<ul></ul>').css('fontSize', '8pt');
   var pr = new PropRenderer(this, propList, this.props);
   pr.render();
   item.append(propList);
@@ -305,6 +306,7 @@ PropRenderer.prototype.renderMetrics = function ()
 
     this.append(key + ': ' );
     this.list.append(ul);
+    i++;
   }
 }
 
