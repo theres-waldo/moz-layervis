@@ -89,7 +89,7 @@ Compositor.prototype.renderLayer = function (layer) {
   this.ctx.fill();
 
   var dtc = layer.props.eventRegions
-            ? layer.props.eventRegions.dispatchtocontentregion
+            ? layer.props.eventRegions.props.dispatchtocontentregion
             : null;
   if (dtc) {
     for (var i = 0; i < dtc.rects.length; i++)
