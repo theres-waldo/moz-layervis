@@ -66,6 +66,7 @@ Display.RenderFile = function ()
     }
   }
   picker.value = '';
+  $('#log-text').val('');
 }
 
 Display.Render = function ()
@@ -134,7 +135,10 @@ Display.Update = function ()
   $('#errorbox').hide();
   $('#composite').show();
 
+  var dpi = parseFloat($('#dpi').val()) || 1.0;
+  var scale = 1.0 / dpi;
+
   var context = $('#composite')[0].getContext('2d');
-  var cc = new Compositor(layers, context);
+  var cc = new Compositor(layers, context, scale);
   cc.render();
 }

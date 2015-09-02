@@ -1,12 +1,13 @@
 // vim: set sts=2 ts=8 sw=2 tw=99 et:
 
-function Compositor(tree, ctx)
+function Compositor(tree, ctx, scale)
 {
   this.tree = tree;
   this.ctx = ctx;
   this.transforms = [];
   this.transform = null;
   this.colors = null;
+  this.scale = scale || 1.0;
 }
 
 Compositor.prototype.pushTransform = function (m) {
@@ -66,11 +67,11 @@ Compositor.prototype.renderLayer = function (layer) {
   if (clip)
     this.pushClip(clip);
   if (preScale)
-    this.pushScale(preScale[0], preScale[1]);
+    this.pushScale(preScale.xScale, preScale.yScale);
   if (transform)
     this.pushTransform(transform);
   if (postScale)
-    this.pushScale(postScale[0], postScale[1]);
+    this.pushScale(postScale.xScale, postScale.yScale);
 
   this.ctx.beginPath();
   if (visible) {
@@ -148,7 +149,9 @@ Compositor.prototype.renderListing = function (list, layer) {
 
 Compositor.prototype.composite = function () {
   this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+  this.pushScale(this.scale, this.scale);
   this.renderLayer(this.tree.root);
+  this.popScale();
 }
 
 Compositor.prototype.render = function ()
@@ -156,8 +159,8 @@ Compositor.prototype.render = function ()
   this.preprocess();
 
   var root = this.tree.root;
-  this.ctx.canvas.width = root.visibleBounds.w;
-  this.ctx.canvas.height = root.visibleBounds.h;
+  this.ctx.canvas.width = root.visibleBounds.w * this.scale;
+  this.ctx.canvas.height = root.visibleBounds.h * this.scale;
   this.composite();
 }
 

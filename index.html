@@ -54,6 +54,8 @@ LayerManager (0x153d9a80)
              onkeyup="Display.GoToFrame()" oninput="Display.GoToFrame()"/>
       <button type="click" id="next-frame" onclick="Display.GoNextFrame()">&gt;</button>
       <button type="click" id="last-frame" onclick="Display.GoLastFrame()">&gt;&gt;</button>
+      DPI: <input type="text" id="dpi" value="1.0"
+                  onkeyup="Display.Update()" oninput="Display.Update()"/>
     </div>
     <div id="viewbox" style="display: none">
       <div id="errorbox" style="display: none">Errors:</div>
