@@ -46,7 +46,8 @@ Compositor.prototype.popClip = function () {
   this.ctx.restore();
 }
 
-Compositor.prototype.drawDispatchToContentRegion = function (layer, region) {
+Compositor.prototype.drawDispatchToContentRegion = function (layer, region)
+{
   this.ctx.beginPath();
   this.ctx.strokeStyle = '#333';
   this.ctx.lineWidth = 2;
@@ -54,9 +55,15 @@ Compositor.prototype.drawDispatchToContentRegion = function (layer, region) {
   this.ctx.stroke();
 }
 
-Compositor.prototype.renderLayer = function (layer) {
-  if (!layer.shouldRender())
+Compositor.prototype.renderLayer = function (layer)
+{
+  if (!layer.shouldRender() && !layer.isMask)
     return;
+
+  // Mask layers are in parent layer coordinates.
+  layer.forEachMaskLayer((function (maskLayer, index) {
+    this.renderLayer(maskLayer);
+  }).bind(this));
 
   var visible = layer.props.shadow_visible || null;
   var transform = layer.props.shadow_transform || null;

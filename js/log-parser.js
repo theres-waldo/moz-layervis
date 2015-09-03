@@ -75,8 +75,14 @@ LogParser.prototype.parseLayerTree = function ()
     var text = node.text.substr(match[0].length);
     return new Layer(type, address, text, node.lineno);
   };
+  var nodeToMaskLayer = function (node) {
+    var layer = nodeToLayer(node);
+    if (!layer)
+      return null;
+    layer.isMask = rue;
+    return layer;
+  }
 
-  var tree = new LayerTree();
   var construct = function (node) {
     var layer = nodeToLayer(node);
     if (!layer)
@@ -93,17 +99,14 @@ LogParser.prototype.parseLayerTree = function ()
 
       if (/Mask layer:/.test(childNode.text) && childNode.children.length == 1) {
         var maskLayerNode = childNode.children[0];
-        var maskLayer = nodeToLayer(maskLayerNode);
-        maskLayer.isMask = true;
-        layer.maskLayer = maskLayer;
+        layer.maskLayer = nodeToMaskLayer(maskLayerNode);
         continue;
       }
 
       var match = /Ancestor mask layer (\d+):/.exec(childNode.text);
       if (match && childNode.children.length == 1) {
         var maskLayerNode = childNode.children[0];
-        var maskLayer = nodeToLayer(maskLayerNode);
-        maskLayer.isMask = true;
+        var maskLayer = nodeToLayerMaskLayer(maskLayerNode);
         if (!layer.ancestorMaskLayers)
           layer.ancestorMaskLayers = [];
 
@@ -116,8 +119,11 @@ LogParser.prototype.parseLayerTree = function ()
     return layer;
   };
 
-  tree.root = construct(root.children[0]);
-  return tree;
+  var rootLayer = construct(root.children[0]);
+  if (!rootLayer)
+    return;
+
+  return new LayerTree(rootLayer);
 }
 
 LogParser.prototype.sortLayerTreeLogLines = function ()

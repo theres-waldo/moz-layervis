@@ -40,9 +40,9 @@ function BoundsOfRegion(rgn)
   };
 }
 
-function LayerTree()
+function LayerTree(root)
 {
-  this.root = null;
+  this.root = root;
   this.parsed = false;
   this.errors = [];
 }
@@ -86,18 +86,23 @@ function Layer(name, address, text, lineno)
   this.props = {};
 }
 
-Layer.prototype.apply = function (callback)
+Layer.prototype.forEachMaskLayer = function (callback)
 {
-  callback(this);
   if (this.maskLayer)
-    callback(this.maskLayer);
+    callback(this.maskLayer, -1);
   if (this.ancestorMaskLayers) {
     for (var i = 0; i < this.ancestorMaskLayers.length; i++) {
       if (!this.ancestorMaskLayers[i])
         continue;
-      callback(this.ancestorMaskLayers[i]);
+      callback(this.ancestorMaskLayers[i], i);
     }
   }
+}
+
+Layer.prototype.apply = function (callback)
+{
+  callback(this);
+  this.forEachMaskLayer(callback);
   for (var i = 0; i < this.children.length; i++)
     this.children[i].apply(callback);
 }
@@ -187,22 +192,14 @@ Layer.prototype.drawInfo = function (list, aPrefix)
   pr.render();
   item.append(propList);
 
-  if (this.maskLayer) {
+  this.forEachMaskLayer(function (maskLayer, index) {
     var sublist = $('<ul></ul>');
-    this.maskLayer.drawInfo(sublist, 'Mask layer:');
+    var text = index >= 0
+               ? "Ancestor mask layer " + index + ":"
+               : "Mask layer:";
+    maskLayer.drawInfo(sublist, text);
     item.append(sublist);
-  }
-
-  if (this.ancestorMaskLayers) {
-    for (var i = 0; i < this.ancestorMaskLayers.length; i++) {
-      var maskLayer = this.ancestorMaskLayers[i];
-      if (!maskLayer)
-        continue;
-      var sublist = $('<ul></ul>');
-      maskLayer.drawInfo(sublist, 'Ancestor mask layer ' + i + ':');
-      item.append(sublist);
-    }
-  }
+  });
 
   // Render children.
   if (this.children.length > 0) {
