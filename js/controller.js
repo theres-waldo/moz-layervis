@@ -140,6 +140,7 @@ Display.Update = function ()
 
   var context = $('#composite')[0].getContext('2d');
   var cc = new Compositor(layers, context, scale);
+  cc.drawDTC = $('#draw-dtc').prop('checked');
   cc.render();
 
   Display.ShowLayerTree(layers);

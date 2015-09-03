@@ -8,6 +8,7 @@ function Compositor(tree, ctx, scale)
   this.transform = null;
   this.colors = null;
   this.scale = scale || 1.0;
+  this.drawDTC = false;
 
   var metrics0 = this.tree.root.props.metrics0;
   if (metrics0 && metrics0.props.z)
@@ -91,7 +92,7 @@ Compositor.prototype.renderLayer = function (layer) {
   var dtc = layer.props.eventRegions
             ? layer.props.eventRegions.props.dispatchtocontentregion
             : null;
-  if (dtc) {
+  if (dtc && this.drawDTC) {
     for (var i = 0; i < dtc.rects.length; i++)
       this.drawDispatchToContentRegion(layer, dtc.rects[i]);
   }

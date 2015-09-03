@@ -141,6 +141,7 @@ LayerManager (0x1)
       <button type="click" id="last-frame" onclick="Display.GoLastFrame()">&gt;&gt;</button>
       Scale: <input type="text" id="scale" value="1.0"
                   onkeyup="Display.Update()" oninput="Display.Update()"/>
+      <input type="checkbox" id="draw-dtc" onchange="Display.Update()"/> Show d-t-c
     </div>
     <div id="viewbox" style="display: none">
       <div id="errorbox" style="display: none">Errors:</div>
