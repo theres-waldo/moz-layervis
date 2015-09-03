@@ -66,7 +66,7 @@ LogParser.prototype.parseLayerTree = function ()
   }
 
   var nodeToLayer = function (node) {
-    var match = /^\s*([^ (]+) (\(0x[A-Za-z0-9]+\))/.exec(node.text);
+    var match = /^\s*([^ (]+) \((0x[A-Za-z0-9]+)\)/.exec(node.text);
     if (!match || !(match[1] in LogParser.layerTypes))
       return null;
 
@@ -94,7 +94,8 @@ LogParser.prototype.parseLayerTree = function ()
       if (/Mask layer:/.test(childNode.text) && childNode.children.length == 1) {
         var maskLayerNode = childNode.children[0];
         var maskLayer = nodeToLayer(maskLayerNode);
-        layer.maskLayer = layer;
+        maskLayer.isMask = true;
+        layer.maskLayer = maskLayer;
         continue;
       }
 
@@ -102,6 +103,7 @@ LogParser.prototype.parseLayerTree = function ()
       if (match && childNode.children.length == 1) {
         var maskLayerNode = childNode.children[0];
         var maskLayer = nodeToLayer(maskLayerNode);
+        maskLayer.isMask = true;
         if (!layer.ancestorMaskLayers)
           layer.ancestorMaskLayers = [];
 

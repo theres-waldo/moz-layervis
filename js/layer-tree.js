@@ -75,6 +75,7 @@ function Layer(name, address, text, lineno)
   this.lineno = lineno;
   this.maskLayer = null;
   this.ancestorMaskLayers = null;
+  this.isMask = false;
 
   // Display properties.
   this.disabled = false;
@@ -140,14 +141,17 @@ Layer.prototype.visible = function ()
   return this.visibleBounds !== null;
 }
 
-Layer.prototype.drawInfo = function (list)
+Layer.prototype.drawInfo = function (list, aPrefix)
 {
   var item = $('<li></li>');
 
   var span = $('<span></span>');
   item.append(span);
 
-  span.text(this.type + ' (' + this.address + ')');
+  var header = this.type + ' (' + this.address + ')';
+  if (aPrefix)
+    header = aPrefix + ' ' + header;
+  span.text(header);
   span.click((function () {
     this.disabled = !this.disabled;
     Display.Update();
@@ -155,7 +159,7 @@ Layer.prototype.drawInfo = function (list)
   span.css('cursor', 'pointer');
 
   // Render header.
-  if (this.visible()) {
+  if (this.visible() || this.isMask) {
     // Is this color too light? ITU Rec 709
     if (Luminosity(this.color_rgb) >= 200)
       span.css('backgroundColor', 'black');
@@ -170,7 +174,7 @@ Layer.prototype.drawInfo = function (list)
       fontStyle: 'italic',
     });
   }
-  if (!this.shouldRender())
+  if (!this.shouldRender() && !this.isMask)
     item.css('textDecoration', 'line-through');
 
   // Render property info.
@@ -178,6 +182,23 @@ Layer.prototype.drawInfo = function (list)
   var pr = new PropRenderer(this, propList, this.props);
   pr.render();
   item.append(propList);
+
+  if (this.maskLayer) {
+    var sublist = $('<ul></ul>');
+    this.maskLayer.drawInfo(sublist, 'Mask layer:');
+    item.append(sublist);
+  }
+
+  if (this.ancestorMaskLayers) {
+    for (var i = 0; i < this.ancestorMaskLayers.length; i++) {
+      var maskLayer = this.ancestorMaskLayers[i];
+      if (!maskLayer)
+        continue;
+      var sublist = $('<ul></ul>');
+      maskLayer.drawInfo(sublist, 'Ancestor mask layer ' + i + ':');
+      item.append(sublist);
+    }
+  }
 
   // Render children.
   if (this.children.length > 0) {
