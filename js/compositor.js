@@ -9,6 +9,7 @@ function Compositor(tree, ctx, scale)
   this.colors = null;
   this.scale = scale || 1.0;
   this.drawDTC = false;
+  this.drawMasks = true;
 
   var metrics0 = this.tree.root.props.metrics0;
   if (metrics0 && metrics0.props.z)
@@ -55,6 +56,39 @@ Compositor.prototype.drawDispatchToContentRegion = function (layer, region)
   this.ctx.stroke();
 }
 
+Compositor.prototype.drawMask = function (layer)
+{
+  var host = layer.compositable;
+  if (!host)
+    return;
+  var texture = host.texture;
+  if (!texture)
+    return;
+  var size = texture.size;
+  if (!size)
+    return;
+
+  this.pushClip({x: 0, y: 0, w: size.w, h: size.h});
+
+  // Draw a bounding box.
+  this.ctx.beginPath();
+  this.ctx.rect(0.5, 0.5, size.w - 0.5, size.h - 0.5);
+  this.ctx.stroke();
+
+  var color = 'rgba(0, 0, 0, 0.2)';
+
+  for (var y = 1.5; y < size.h + size.w; y += 30) {
+    this.ctx.beginPath();
+    this.ctx.lineWidth = 10;
+    this.ctx.moveTo(2.5, y);
+    this.ctx.lineTo(y, 2.5);
+    this.ctx.strokeStyle = color;
+    this.ctx.stroke();
+  }
+
+  this.popClip();
+}
+
 Compositor.prototype.renderLayer = function (layer)
 {
   if (!layer.visible() && !layer.isMask)
@@ -82,16 +116,17 @@ Compositor.prototype.renderLayer = function (layer)
   if (postScale)
     this.pushScale(postScale.xScale, postScale.yScale);
 
-  this.ctx.beginPath();
-  if (visible) {
+  if (layer.isMask && this.drawMasks) {
+    this.drawMask(layer);
+  } else if (visible) {
+    this.ctx.beginPath();
     for (var i = 0; i < visible.rects.length; i++) {
       var rect = visible.rects[i];
       this.ctx.rect(rect.x, rect.y, rect.w, rect.h);
     }
+    this.ctx.fillStyle = layer.color;
+    this.ctx.fill();
   }
-
-  this.ctx.fillStyle = layer.color;
-  this.ctx.fill();
 
   var dtc = layer.props.eventRegions
             ? layer.props.eventRegions.props.dispatchtocontentregion
@@ -141,19 +176,22 @@ Compositor.prototype.render = function ()
 Compositor.prototype.preprocess = function ()
 {
   var visible = 0;
-  this.tree.root.apply(function (layer) {
-    if (layer.visible())
-      visible++;
+  this.tree.root.applyIf(function (layer) {
+    if (!layer.visible())
+      return false;
+    visible++;
+    return true;
   });
 
   var colors = new ColorGenerator(visible);
   this.tree.root.apply(function (layer) {
     if (!layer.visible())
-      return;
+      return false;
 
     var color = colors.next();
     var text = 'rgb(' + color.join(',') + ')';
     layer.color = text;
     layer.color_rgb = color;
+    return true;
   });
 }

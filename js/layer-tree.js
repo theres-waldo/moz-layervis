@@ -52,6 +52,11 @@ LayerTree.prototype.apply = function (callback)
   this.root.apply(callback);
 }
 
+LayerTree.prototype.applyIf = function (callback)
+{
+  this.root.applyIf(callback);
+}
+
 LayerTree.prototype.parseIfNeeded = function ()
 {
   if (this.parsed)
@@ -118,6 +123,16 @@ Layer.prototype.forEachMaskLayer = function (callback)
 Layer.prototype.apply = function (callback)
 {
   callback(this);
+  this.forEachMaskLayer(callback);
+  for (var i = 0; i < this.children.length; i++)
+    this.children[i].apply(callback);
+}
+
+// Same as apply but skips children if the callback returns false.
+Layer.prototype.applyIf = function (callback)
+{
+  if (!callback(this))
+    return;
   this.forEachMaskLayer(callback);
   for (var i = 0; i < this.children.length; i++)
     this.children[i].apply(callback);
