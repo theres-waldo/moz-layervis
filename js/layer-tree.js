@@ -65,14 +65,16 @@ LayerTree.prototype.parseIfNeeded = function ()
   return this.errors.length == 0;
 }
 
-function Layer(parent, name, text, lineno)
+function Layer(name, address, text, lineno)
 {
-  this.parent = parent;
+  this.parent = null;
   this.children = [];
   this.type = name;
+  this.address = address;
   this.text = text;
   this.lineno = lineno;
   this.maskLayer = null;
+  this.ancestorMaskLayers = null;
 
   // Display properties.
   this.disabled = false;
@@ -81,14 +83,20 @@ function Layer(parent, name, text, lineno)
 
   // Computed properties.
   this.props = {};
-
-  if (parent)
-    parent.children.push(this);
 }
 
 Layer.prototype.apply = function (callback)
 {
   callback(this);
+  if (this.maskLayer)
+    callback(this.maskLayer);
+  if (this.ancestorMaskLayers) {
+    for (var i = 0; i < this.ancestorMaskLayers.length; i++) {
+      if (!this.ancestorMaskLayers[i])
+        continue;
+      callback(this.ancestorMaskLayers[i]);
+    }
+  }
   for (var i = 0; i < this.children.length; i++)
     this.children[i].apply(callback);
 }
