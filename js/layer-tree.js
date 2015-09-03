@@ -154,6 +154,10 @@ Layer.prototype.drawInfo = function (list, aPrefix)
   span.text(header);
   span.click((function () {
     this.disabled = !this.disabled;
+    if (this.disabled)
+      item.css('textDecoration', 'line-through');
+    else
+      item.css('textDecoration', 'none');
     Display.Update();
   }).bind(this));
   span.css('cursor', 'pointer');

@@ -115,26 +115,29 @@ Display.SetButtonStates = function ()
 
 Display.Update = function ()
 {
-  Display.SetButtonStates();
   var frame = Display.GetCurrentFrame();
   var layers = Display.FrameList[frame];
 
-  if (!layers.parseIfNeeded()) {
-    $('#errorbox').show().empty();
-    $('#composite').hide();
-    for (var i = 0; i < layers.errors.length; i++) {
-      var error = layers.errors[i];
-      $('#errorbox').append($('<div></div>').text(
-        'Line ' + (error.layer.lineno) + ', ' +
-        error.layer.type + ': ' +
-        error.error.message
-      ));
-    }
-    return;
-  }
+  if (Display.LastUpdatedFrame != frame) {
+    Display.SetButtonStates();
 
-  $('#errorbox').hide();
-  $('#composite').show();
+    if (!layers.parseIfNeeded()) {
+      $('#errorbox').show().empty();
+      $('#composite').hide();
+      for (var i = 0; i < layers.errors.length; i++) {
+        var error = layers.errors[i];
+        $('#errorbox').append($('<div></div>').text(
+          'Line ' + (error.layer.lineno) + ', ' +
+          error.layer.type + ': ' +
+          error.error.message
+        ));
+      }
+      return;
+    }
+
+    $('#errorbox').hide();
+    $('#composite').show();
+  }
 
   var scale = parseFloat($('#scale').val()) || 1.0;
 
@@ -143,7 +146,9 @@ Display.Update = function ()
   cc.drawDTC = $('#draw-dtc').prop('checked');
   cc.render();
 
-  Display.ShowLayerTree(layers);
+  if (Display.LastUpdatedFrame != frame)
+    Display.ShowLayerTree(layers);
+
   Display.LastUpdatedFrame = frame;
 }
 
