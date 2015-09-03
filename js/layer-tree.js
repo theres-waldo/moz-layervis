@@ -75,7 +75,9 @@ function Layer(name, address, text, lineno)
   this.lineno = lineno;
   this.maskLayer = null;
   this.ancestorMaskLayers = null;
+  this.size = null;
   this.isMask = false;
+  this.compositable = null;
 
   // Display properties.
   this.disabled = false;
@@ -84,6 +86,20 @@ function Layer(name, address, text, lineno)
 
   // Computed properties.
   this.props = {};
+}
+
+function TextureHost(type, address)
+{
+  this.type = type;
+  this.address = address;
+  this.size = null;
+}
+
+function CompositableHost(type, address)
+{
+  this.type = type;
+  this.address = address;
+  this.texture = null;
 }
 
 Layer.prototype.forEachMaskLayer = function (callback)
@@ -105,6 +121,13 @@ Layer.prototype.apply = function (callback)
   this.forEachMaskLayer(callback);
   for (var i = 0; i < this.children.length; i++)
     this.children[i].apply(callback);
+}
+
+Layer.prototype.setAncestorMaskLayer = function (index, maskLayer)
+{
+  if (this.ancestorMaskLayers === null)
+    this.ancestorMaskLayers = [];
+  this.ancestorMaskLayers[index] = maskLayer;
 }
 
 Layer.prototype.parse = function (tree)
@@ -130,13 +153,9 @@ Layer.prototype.parse = function (tree)
     this.address = r['address'].value;
     delete r['address'];
   }
-}
 
-Layer.prototype.shouldRender = function ()
-{
-  if (this.disabled)
-    return false;
-  return this.visible();
+  // Don't hold on to line text now that it's no longer needed.
+  this.text = null;
 }
 
 Layer.prototype.visible = function ()
@@ -183,7 +202,7 @@ Layer.prototype.drawInfo = function (list, aPrefix)
       fontStyle: 'italic',
     });
   }
-  if (!this.shouldRender() && !this.isMask)
+  if (this.disabled || !(this.visible() || this.isMask))
     item.css('textDecoration', 'line-through');
 
   // Render property info.
@@ -256,6 +275,8 @@ function PropToString(prop)
 
 PropRenderer.prototype.render = function ()
 {
+  if (this.layer)
+    this.renderCompositable();
   this.renderFlags();
   if (this.layer) {
     this.renderShadowProps();
@@ -373,6 +394,27 @@ PropRenderer.prototype.renderEventRegions = function ()
   }
 
   this.list.append(ul);
+}
+
+PropRenderer.prototype.renderCompositable = function ()
+{
+  if (!this.layer.compositable)
+    return;
+  var cc = this.layer.compositable;
+
+  // Currently, only do this for mask layers since we want to see the size.
+  if (!this.layer.isMask)
+    return;
+
+  var pieces = [cc.type];
+  if (cc.texture) {
+    pieces.push(cc.texture.type);
+    var size = cc.texture.size;
+    if (size)
+      pieces.push(" size=(w=" + size.w + ", h=" + size.h + ")");
+  }
+
+  this.append('impl: ' + pieces.join(', '));
 }
 
 PropRenderer.prototype.popProp = function (propName)

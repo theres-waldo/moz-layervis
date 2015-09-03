@@ -57,13 +57,10 @@ Compositor.prototype.drawDispatchToContentRegion = function (layer, region)
 
 Compositor.prototype.renderLayer = function (layer)
 {
-  if (!layer.shouldRender() && !layer.isMask)
+  if (!layer.visible() && !layer.isMask)
     return;
-
-  // Mask layers are in parent layer coordinates.
-  layer.forEachMaskLayer((function (maskLayer, index) {
-    this.renderLayer(maskLayer);
-  }).bind(this));
+  if (layer.disabled)
+    return;
 
   var visible = layer.props.shadow_visible || null;
   var transform = layer.props.shadow_transform || null;
@@ -115,46 +112,13 @@ Compositor.prototype.renderLayer = function (layer)
     this.popScale();
   if (clip)
     this.popClip();
-}
 
-Compositor.prototype.renderListing = function (list, layer) {
-  var item = document.createElement('li');
-  list.appendChild(item);
-  item.style.color = layer.color;
-
-  var span = document.createElement('span');
-  span.textContent = layer.type + layer.comment;
-
-  if (layer.shouldRender()) {
-    // Is this color too light? ITU Rec 709
-    var luma = 0.2126 * layer.color_rgb[0] +
-               0.7152 * layer.color_rgb[1] +
-               0.0722 * layer.color_rgb[2];
-    if (luma >= 200)
-      span.style.backgroundColor = 'black';
-    else
-      span.style.backgroundColor = 'white';
-    span.onclick = (function () {
-      layer.disabled = !layer.disabled;
-      if (layer.disabled)
-        span.style.textDecoration = 'line-through';
-      else
-        span.style.textDecoration = '';
-      this.renderLayers();
-    }).bind(this);
-  } else {
-    span.style.color = '#ccc';
-    span.style.textDecoration = 'line-through';
-    span.style.fontStyle = 'italic';
-  }
-
-  item.appendChild(span);
-
-  var child_list = document.createElement('ul');
-  item.appendChild(child_list);
-
-  for (var i = 0; i < layer.children.length; i++)
-    this.renderListing(child_list, layer.children[i]);
+  // Mask layers are in parent layer coordinates, so we paint them after
+  // popping local layer state. We also paint after our children, so the
+  // full mask region can be seen.
+  layer.forEachMaskLayer((function (maskLayer, index) {
+    this.renderLayer(maskLayer);
+  }).bind(this));
 }
 
 Compositor.prototype.composite = function () {

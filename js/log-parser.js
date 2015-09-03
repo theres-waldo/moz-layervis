@@ -48,13 +48,6 @@ function LogLine(depth, lineno, text, parent)
     this.parent.children.push(this);
 }
 
-LogParser.layerTypes = {
-  'ContainerLayerComposite': true,
-  'ColorLayerComposite': true,
-  'PaintedLayerComposite': true,
-  'RefLayerComposite': true,
-  'ImageLayerComposite': true,
-};
 LogParser.prototype.parseLayerTree = function ()
 {
   var root = this.sortLayerTreeLogLines();
@@ -65,64 +58,10 @@ LogParser.prototype.parseLayerTree = function ()
       console.log('More than one layer tree root found at: ' + root.lineno);
   }
 
-  var nodeToLayer = function (node) {
-    var match = /^\s*([^ (]+) \((0x[A-Za-z0-9]+)\)/.exec(node.text);
-    if (!match || !(match[1] in LogParser.layerTypes))
-      return null;
-
-    var type = match[1];
-    var address = match[2];
-    var text = node.text.substr(match[0].length);
-    return new Layer(type, address, text, node.lineno);
-  };
-  var nodeToMaskLayer = function (node) {
-    var layer = nodeToLayer(node);
-    if (!layer)
-      return null;
-    layer.isMask = rue;
-    return layer;
-  }
-
-  var construct = function (node) {
-    var layer = nodeToLayer(node);
-    if (!layer)
-      return null;
-
-    for (var i = 0; i < node.children.length; i++) {
-      var childNode = node.children[i];
-      var child = construct(childNode);
-      if (child) {
-        child.parent = layer;
-        layer.children.push(child);
-        continue;
-      }
-
-      if (/Mask layer:/.test(childNode.text) && childNode.children.length == 1) {
-        var maskLayerNode = childNode.children[0];
-        layer.maskLayer = nodeToMaskLayer(maskLayerNode);
-        continue;
-      }
-
-      var match = /Ancestor mask layer (\d+):/.exec(childNode.text);
-      if (match && childNode.children.length == 1) {
-        var maskLayerNode = childNode.children[0];
-        var maskLayer = nodeToLayerMaskLayer(maskLayerNode);
-        if (!layer.ancestorMaskLayers)
-          layer.ancestorMaskLayers = [];
-
-        var maskLayerIndex = parseInt(match[1]);
-        layer.ancestorMaskLayers[maskLayerIndex] = maskLayer;
-        continue;
-      }
-    }
-
-    return layer;
-  };
-
-  var rootLayer = construct(root.children[0]);
+  var p = new LayerTreeParser(root.children[0]);
+  var rootLayer = p.parse();
   if (!rootLayer)
-    return;
-
+    return null;
   return new LayerTree(rootLayer);
 }
 
@@ -171,4 +110,118 @@ LogParser.prototype.countLeadingSpaces = function (line)
     spaces++;
   }
   return spaces;
+}
+
+function LayerTreeParser(root)
+{
+  this.root = root;
+}
+
+LayerTreeParser.prototype.deduceLineType = function (line)
+{
+  var match = /^\s*([^ (]+) \((0x[A-Za-z0-9]+)\)/.exec(line);
+  if (match)
+    return { type: match[1], address: match[2], strip: match[0].length };
+  if (/Mask layer:/.test(line))
+    return { type: 'mask', index: -1 };
+  var match = /Ancestor mask layer (\d+):/.exec(line);
+  if (match)
+    return { type: 'ancestor-mask', index: parseInt(match[1]) };
+  return null;
+}
+
+LayerTreeParser.prototype.parse = function ()
+{
+  return this.constructLayer(this.root);
+}
+
+LayerTreeParser.prototype.constructLayer = function (node)
+{
+  var info = this.deduceLineType(node.text);
+  if (!info)
+    return null;
+
+  var layer = this.maybeLayer(info, node);
+  if (!layer)
+    return null;
+
+  this.findLayerChildren(layer, node);
+  return layer;
+}
+
+LayerTreeParser.prototype.maybeLayer = function (info, node)
+{
+  switch (info.type) {
+    case 'ContainerLayerComposite':
+    case 'ColorLayerComposite':
+    case 'PaintedLayerComposite':
+    case 'RefLayerComposite':
+    case 'ImageLayerComposite':
+      var text = node.text.substr(info.strip);
+      return new Layer(info.type, info.address, text, node.lineno);
+    default:
+      return null;
+  }
+}
+
+LayerTreeParser.prototype.findLayerChildren = function (parentLayer, node)
+{
+  for (var i = 0; i < node.children.length; i++) {
+    var childNode = node.children[i];
+    var info = this.deduceLineType(childNode.text);
+    if (!info)
+      return;
+
+    var childLayer = this.maybeLayer(info, childNode);
+    if (childLayer) {
+      parentLayer.children.push(childLayer);
+      childLayer.parent = parentLayer;
+      this.findLayerChildren(childLayer, childNode);
+      continue;
+    }
+
+    switch (info.type) {
+      case 'ImageHost':
+        parentLayer.compositable = this.parseCompositable(childNode, info);
+        break;
+      case 'mask':
+      case 'ancestor-mask':
+      {
+        if (childNode.children.length != 1)
+          continue;
+
+        var layer = this.constructLayer(childNode.children[0]);
+        if (!layer)
+          continue;
+        layer.isMask = true;
+
+        if (info.index == -1)
+          parentLayer.maskLayer = layer;
+        else
+          parentLayer.setAncestorMaskLayer(info.index, layer);
+        break;
+      }
+    }
+  }
+}
+
+LayerTreeParser.prototype.parseCompositable = function (node, info)
+{
+  var text = node.text.substr(info.strip);
+  var compositable = new CompositableHost(info.type, info.address, text);
+  if (node.children.length == 1) {
+    var childNode = node.children[0];
+    var childInfo = this.deduceLineType(childNode.text);
+    if (childInfo && childInfo.strip) {
+      // Big hack, I'm getting lazy and really all we want is the size from this.
+      // Check "strip" above to indicate that it's probably a TextureHost,
+      // rather than enumerating them in a switch.
+      var texture = new TextureHost(childInfo.type, childInfo.address);
+      var match = /\[size=\(w=(\d+), h=(\d+)\)\]/.exec(childNode.text);
+      if (match)
+        texture.size = { w: parseInt(match[1]), h: parseInt(match[2]) };
+      compositable.texture = texture;
+    }
+  }
+  return compositable;
 }
