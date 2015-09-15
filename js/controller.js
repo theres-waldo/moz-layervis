@@ -162,7 +162,8 @@ Display.Update = function ()
     }
 
     $('#errorbox').hide();
-    $('#composite').show();
+    if (!Display.popup)
+      $('#composite').show();
   }
 
   var canvas;
