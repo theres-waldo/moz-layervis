@@ -12,6 +12,7 @@ function Display()
 {
 }
 
+Display.popup = null;
 Display.LastUpdatedFrame = -1;
 Display.GetCurrentFrame = function ()
 {
@@ -113,6 +114,31 @@ Display.SetButtonStates = function ()
   $('#prev-frame').prop('disabled', frame_index == 0);
 }
 
+Display.PopOut = function ()
+{
+  if ($('#draw-popout').prop('checked')) {
+    var frame = Display.GetCurrentFrame();
+    var layers = Display.FrameList[frame];
+    var scale = parseFloat($('#scale').val()) || 1.0;
+    var size = Compositor.ComputeCanvasSize(layers, scale);
+    Display.popup = window.open(
+      'popup.html',
+      'Layer View',
+      'width=' + size.w + ',height=' + size.h + ',' +
+      'outerWidth=' + (size.w + 40) + ',height=' + (size.h + 40) + ',' +
+      'resizable');
+    $('#composite').hide();
+
+    // Note: we get Display.Update() through a callback in this case.
+  } else {
+    if (Display.popup)
+      Display.popup.close();
+    Display.popup = null;
+    $('#composite').show();
+    Display.Update();
+  }
+}
+
 Display.Update = function ()
 {
   var frame = Display.GetCurrentFrame();
@@ -139,12 +165,34 @@ Display.Update = function ()
     $('#composite').show();
   }
 
-  var scale = parseFloat($('#scale').val()) || 1.0;
+  var canvas;
+  if (Display.popup) {
+    canvas = Display.popup.document.getElementById('composite');
+  } else {
+    canvas = $('#composite')[0];
+  }
+  var context = canvas.getContext('2d');
 
-  var context = $('#composite')[0].getContext('2d');
+  var scale = parseFloat($('#scale').val()) || 1.0;
   var cc = new Compositor(layers, context, scale);
   cc.drawDTC = $('#draw-dtc').prop('checked');
   cc.drawMasks = $('#draw-masks').prop('checked');
+
+  var size = cc.getSize();
+  if (Display.popup) {
+    // Compute the new size for the window with a fudge factor for scrollbars.
+    var widthDelta = Display.popup.outerWidth - Display.popup.innerWidth + 20;
+    var heightDelta = Display.popup.outerHeight - Display.popup.innerHeight + 20;
+    if (widthDelta < 0)
+      widthDelta = 20;
+    if (heightDelta < 0)
+      heightDelta = 20;
+    Display.popup.resizeTo(size.w + widthDelta, size.h + heightDelta);
+  }
+
+  context.canvas.width = size.w;
+  context.canvas.height = size.h;
+
   cc.render();
 
   if (Display.LastUpdatedFrame != frame)

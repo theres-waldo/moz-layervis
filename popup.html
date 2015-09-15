@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta http-equiv="content-language" content="en">
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <title>Layers Image</title>
+    <script type="text/javascript">
+      function Startup() {
+        setTimeout(function () {
+          window.opener.Display.Update();
+        }, 0);
+      }
+    </script>
+  </head>
+  <body onload="Startup()">
+   <canvas id="composite" width="1" height="1">
+   </canvas>
+  </body>
+</html>
