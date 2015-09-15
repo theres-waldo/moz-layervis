@@ -16,6 +16,18 @@ function Compositor(tree, ctx, scale)
     this.scale *= (1.0 / metrics0.props.z);
 }
 
+Compositor.ComputeCanvasSize = function (tree, scale)
+{
+  var metrics0 = tree.root.props.metrics0;
+  if (metrics0 && metrics0.props.z)
+    scale *= (1.0 / metrics0.props.z);
+
+  return {
+    w: tree.root.visibleBounds.w * scale,
+    h: tree.root.visibleBounds.h * this.scale,
+  };
+}
+
 Compositor.prototype.pushTransform = function (m) {
   this.ctx.save();
   this.ctx.transform(m.rows[0][0], m.rows[0][1],
@@ -166,11 +178,15 @@ Compositor.prototype.composite = function () {
 Compositor.prototype.render = function ()
 {
   this.preprocess();
-
-  var root = this.tree.root;
-  this.ctx.canvas.width = root.visibleBounds.w * this.scale;
-  this.ctx.canvas.height = root.visibleBounds.h * this.scale;
   this.composite();
+}
+
+Compositor.prototype.getSize = function ()
+{
+  return {
+    w: this.tree.root.visibleBounds.w * this.scale,
+    h: this.tree.root.visibleBounds.h * this.scale,
+  };
 }
 
 Compositor.prototype.preprocess = function ()

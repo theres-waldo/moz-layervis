@@ -12,6 +12,7 @@ function Display()
 {
 }
 
+Display.popup = null;
 Display.LastUpdatedFrame = -1;
 Display.GetCurrentFrame = function ()
 {
@@ -113,6 +114,27 @@ Display.SetButtonStates = function ()
   $('#prev-frame').prop('disabled', frame_index == 0);
 }
 
+Display.PopOut = function ()
+{
+  if ($('#draw-popout').prop('checked')) {
+    var frame = Display.GetCurrentFrame();
+    var layers = Display.FrameList[frame];
+    var scale = parseFloat($('#scale').val()) || 1.0;
+    var size = Compositor.ComputeCanvasSize(layers, scale);
+    Display.popup = window.open(
+      'popup.html',
+      'Layer View',
+      'width=' + size.w + ',height=' + size.h + ',' +
+      'resizable');
+  } else {
+    if (Display.popup)
+      Display.popup.close();
+    Display.popup = null;
+  }
+
+  Display.Update();
+}
+
 Display.Update = function ()
 {
   var frame = Display.GetCurrentFrame();
@@ -140,11 +162,21 @@ Display.Update = function ()
   }
 
   var scale = parseFloat($('#scale').val()) || 1.0;
-
   var context = $('#composite')[0].getContext('2d');
   var cc = new Compositor(layers, context, scale);
   cc.drawDTC = $('#draw-dtc').prop('checked');
   cc.drawMasks = $('#draw-masks').prop('checked');
+
+  var size = cc.getSize();
+  context.canvas.width = size.w;
+  context.canvas.height = size.h;
+
+  if (Display.popup) {
+    var widthDelta = Display.popup.outerWidth - Display.popup.innerWidth;
+    var heightDelta = Display.popup.outerHeight - Display.popup.innerHeight;
+    Display.popup.resizeTo(size.w + widthDelta, size.h + heightDelta);
+  }
+
   cc.render();
 
   if (Display.LastUpdatedFrame != frame)
