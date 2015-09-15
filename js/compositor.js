@@ -12,19 +12,23 @@ function Compositor(tree, ctx, scale)
   this.drawMasks = true;
 
   var metrics0 = this.tree.root.props.metrics0;
-  if (metrics0 && metrics0.props.z)
-    this.scale *= (1.0 / metrics0.props.z);
+  if (metrics0 && metrics0.props.z) {
+    var z = parseInt(metrics0.props.z) || parseInt(metrics0.props.z.value);
+    this.scale *= (1.0 / z);
+  }
 }
 
 Compositor.ComputeCanvasSize = function (tree, scale)
 {
   var metrics0 = tree.root.props.metrics0;
-  if (metrics0 && metrics0.props.z)
-    scale *= (1.0 / metrics0.props.z);
+  if (metrics0 && metrics0.props.z) {
+    var z = parseInt(metrics0.props.z) || parseInt(metrics0.props.z.value);
+    scale *= (1.0 / z);
+  }
 
   return {
     w: tree.root.visibleBounds.w * scale,
-    h: tree.root.visibleBounds.h * this.scale,
+    h: tree.root.visibleBounds.h * scale,
   };
 }
 
