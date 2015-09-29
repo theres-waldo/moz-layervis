@@ -273,6 +273,11 @@ function PropToString(prop)
     return '[ ' + prop.rows[0][0] + ' ' + prop.rows[0][1] + '; ' +
                   prop.rows[1][0] + ' ' + prop.rows[1][1] + '; ' +
                   prop.rows[2][0] + ' ' + prop.rows[2][1] + ' ]';
+  case 'matrix3d':
+    return '[ ' + Array.join(prop.rows[0], ' ') + '; ' +
+                  Array.join(prop.rows[1], ' ') + '; ' +
+                  Array.join(prop.rows[2], ' ') + '; ' +
+                  Array.join(prop.rows[3], ' ') + ' ]';
   case 'rect':
     return '(x=' + prop.x + ', y=' + prop.y + ', w=' + prop.w + ', h=' + prop.h + ')';
   case 'color':

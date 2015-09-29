@@ -34,9 +34,25 @@ Compositor.ComputeCanvasSize = function (tree, scale)
 
 Compositor.prototype.pushTransform = function (m) {
   this.ctx.save();
-  this.ctx.transform(m.rows[0][0], m.rows[0][1],
-                     m.rows[1][0], m.rows[1][1],
-                     m.rows[2][0], m.rows[2][1]);
+  if (m.type == 'matrix3d') {
+    try {
+      if ((m.rows[2][0] != 0 || m.rows[2][1] != 0 || m.rows[2][2] != 1 || m.rows[2][3] != 0) ||
+          (m.rows[3][2] > 2 || m.rows[3][2] < -2) ||
+          m.rows[3][3] != 1)
+      {
+        alert('Frame contains a 3D transform, which is not supported yet.');
+      }
+    } catch (e) {
+    }
+    // Hack, we ignore z-axis and perspective.
+    this.ctx.transform(m.rows[0][0], m.rows[0][1],
+                       m.rows[1][0], m.rows[1][1],
+                       m.rows[3][0], m.rows[3][1]);
+  } else {
+    this.ctx.transform(m.rows[0][0], m.rows[0][1],
+                       m.rows[1][0], m.rows[1][1],
+                       m.rows[2][0], m.rows[2][1]);
+  }
 }
 
 Compositor.prototype.popTransform = function () {
@@ -107,21 +123,16 @@ Compositor.prototype.drawMask = function (layer)
 
 Compositor.prototype.renderLayer = function (layer)
 {
-  if (!layer.visible() && !layer.isMask)
-    return;
   if (layer.disabled)
     return;
+
+  var dontDrawRect = (!layer.visible() && !layer.isMask);
 
   var visible = layer.props.shadow_visible || null;
   var transform = layer.props.shadow_transform || null;
   var clip = layer.props.shadow_clip || null;
   var preScale = layer.props.preScale || null;
   var postScale = layer.props.postScale || null;
-
-  if (transform && transform.type == 'matrix3d') {
-    alert('Frame contains a 3D transform, which is not supported yet.');
-    return;
-  }
 
   if (clip)
     this.pushClip(clip);
@@ -134,7 +145,7 @@ Compositor.prototype.renderLayer = function (layer)
 
   if (layer.isMask && this.drawMasks) {
     this.drawMask(layer);
-  } else if (visible) {
+  } else if (visible && !dontDrawRect) {
     this.ctx.beginPath();
     for (var i = 0; i < visible.rects.length; i++) {
       var rect = visible.rects[i];
@@ -152,8 +163,10 @@ Compositor.prototype.renderLayer = function (layer)
       this.drawDispatchToContentRegion(layer, dtc.rects[i]);
   }
 
-  for (var i = 0; i < layer.children.length; i++)
-    this.renderLayer(layer.children[i]);
+  if (!dontDrawRect) {
+    for (var i = 0; i < layer.children.length; i++)
+      this.renderLayer(layer.children[i]);
+  }
 
   if (postScale)
     this.popScale();
@@ -167,9 +180,11 @@ Compositor.prototype.renderLayer = function (layer)
   // Mask layers are in parent layer coordinates, so we paint them after
   // popping local layer state. We also paint after our children, so the
   // full mask region can be seen.
-  layer.forEachMaskLayer((function (maskLayer, index) {
-    this.renderLayer(maskLayer);
-  }).bind(this));
+  if (!dontDrawRect) {
+    layer.forEachMaskLayer((function (maskLayer, index) {
+      this.renderLayer(maskLayer);
+    }).bind(this));
+  }
 }
 
 Compositor.prototype.composite = function () {
