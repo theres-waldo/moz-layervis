@@ -157,6 +157,13 @@ LayerTreeParser.prototype.maybeLayer = function (info, node)
     case 'PaintedLayerComposite':
     case 'RefLayerComposite':
     case 'ImageLayerComposite':
+    case 'CanvasLayerComposite':
+    case 'ContainerLayerMLGPU':
+    case 'ColorLayerMLGPU':
+    case 'PaintedLayerMLGPU':
+    case 'RefLayerMLGPU':
+    case 'ImageLayerMLGPU':
+    case 'CanvasLayerMLGPU':
       var text = node.text.substr(info.strip);
       return new Layer(info.type, info.address, text, node.lineno);
     default:

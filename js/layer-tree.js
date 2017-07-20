@@ -175,8 +175,11 @@ Layer.prototype.parse = function (tree)
 
 Layer.prototype.visible = function ()
 {
-  if (this.type === 'ContainerLayerComposite')
+  if (this.type === 'ContainerLayerComposite' ||
+      this.type === 'ContainerLayerMLGPU')
+  {
     return true;
+  }
   return this.visibleBounds !== null;
 }
 
