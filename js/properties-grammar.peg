@@ -97,6 +97,7 @@ PropertyList
 
 TopLevelItem
   = FixedPosition
+  / Animation
   / Property
   / EventRegions
 
@@ -118,6 +119,11 @@ PropertyTail
 EventRegions
   = "{" _ r:(EventRegion _)* _ "}" {
     return { key: "eventRegions", value: new EventRegions(map(r, 0)) };
+  }
+
+Animation
+  = "[" _ n:Integer _ "animations with id=" p:Pointer _ "]" {
+    return { key: "animations", count: n, id: p };
   }
 
 EventRegion
